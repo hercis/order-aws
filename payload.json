@@ -1,0 +1,9 @@
+{
+  "customerId": 10,
+  "items": [
+    {"productId" : "p123",
+    "quantity" : 2,
+    "price" : 55
+    }
+  ]
+}

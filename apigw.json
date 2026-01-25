@@ -1,0 +1,10 @@
+{
+  "resource": "/order",
+  "path": "/order",
+  "httpMethod": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{ \"customerId\": \"c123\", \"items\": [{ \"productId\": \"100\", \"quantity\": 2, \"price\": 10.0 }] }",
+  "isBase64Encoded": false
+}
