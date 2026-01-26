@@ -18,9 +18,12 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @QuarkusTest
 public class CreateOrderHandlerTest {
+
+  @Inject DynamoDbClient dynamoDb;
 
   @Inject CreateOrderHandler handler;
 
@@ -29,12 +32,9 @@ public class CreateOrderHandlerTest {
   @Test
   public void testSimpleLambdaSuccess() throws Exception {
     Order order = new Order();
-    order.setOrderId("o-123");
+    order.setOrderId("o123");
 
-    APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
-    event.setHttpMethod("POST");
-    event.setPath("/order");
-    event.setBody(
+    String body =
         """
             {
               "customerId": "c1",
@@ -42,7 +42,10 @@ public class CreateOrderHandlerTest {
                 { "productId": "p1", "quantity": 2, "price": 10.0 }
               ]
             }
-        """);
+        """;
+
+    APIGatewayProxyRequestEvent event =
+        new APIGatewayProxyRequestEvent().withPath("/order").withHttpMethod("POST").withBody(body);
 
     Mockito.when(orderService.create(Mockito.any())).thenReturn(order);
 
@@ -50,6 +53,7 @@ public class CreateOrderHandlerTest {
 
     assertThat(response, notNullValue());
     assertThat(response.getStatusCode(), is(201));
-    assertThat(response.getBody(), containsString("o-123"));
+    assertThat(response.getBody(), containsString("o123"));
   }
+
 }
