@@ -1,6 +1,7 @@
 package org.acme.order.repository;
 
 import org.acme.order.domain.Order;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -12,9 +13,9 @@ public class OrderRepository {
 
   private final DynamoDbTable<Order> orderTable;
 
-  public OrderRepository(DynamoDbEnhancedClient client) {
-    orderTable =
-        client.table(System.getenv("ORDER_TABLE_NAME"), TableSchema.fromClass(Order.class));
+  public OrderRepository(
+      DynamoDbEnhancedClient client, @ConfigProperty(name = "order.table-name") String tableName) {
+    orderTable = client.table(tableName, TableSchema.fromClass(Order.class));
   }
 
   public void save(Order order) {
