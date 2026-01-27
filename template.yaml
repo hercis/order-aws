@@ -1,10 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Order API using AWS Lambda with API Gateway
-#Parameters:
-#  Stage:
-#    Type: String
-#    Default: prod
+
+Parameters:
+  Stage:
+   Type: String
+   Default: prod
+   Description: StageName of API Gateway
+
 Globals:
   Function:
     Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
@@ -24,7 +27,8 @@ Resources:
   OrderApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: prod
+#      StageName: prod
+      StageName: !Ref Stage
       Name: Order API
 
   PostOrderHandler:
@@ -45,9 +49,8 @@ Resources:
 #            Action:
 #              - dynamodb:PutItem
 #            Resource: !GetAtt OrderTable.Arn
-      
       Events:
-        GetResource:
+        PostOrder:
           Type: Api
           Properties:
             RestApiId: !Ref OrderApiGateway
@@ -74,3 +77,4 @@ Outputs:
     Value: !Sub 'https://${OrderApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/'
     Export:
       Name: QuarkusLambdaApi
+
