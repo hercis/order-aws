@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 
 import org.acme.order.domain.Order;
 import org.acme.order.service.OrderService;
+import org.acme.order.support.Result;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -47,7 +48,7 @@ public class CreateOrderHandlerTest {
     APIGatewayProxyRequestEvent event =
         new APIGatewayProxyRequestEvent().withPath("/order").withHttpMethod("POST").withBody(body);
 
-    Mockito.when(orderService.create(Mockito.any())).thenReturn(order);
+    Mockito.when(orderService.create(Mockito.any())).thenReturn(Result.success(order));
 
     APIGatewayProxyResponseEvent response = handler.handleRequest(event, mock(Context.class));
 
