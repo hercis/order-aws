@@ -6,9 +6,9 @@ import org.acme.order.domain.Order;
 import org.acme.order.mapper.OrderMapper;
 import org.acme.order.repository.CustomerRepository;
 import org.acme.order.repository.OrderRepository;
-import org.acme.order.support.AppError;
-import org.acme.order.support.Result;
-import org.acme.order.support.AppError.NotFoundError;
+import org.acme.support.AppError;
+import org.acme.support.Result;
+import org.acme.support.AppError.NotFoundError;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -21,7 +21,6 @@ public class OrderService {
   @Inject CustomerRepository customerRepository;
 
   public Result<Order, AppError> create(CreateOrderRequest request) {
-
     String customerId = request.customerId();
     Result<Order, AppError> result =
         customerRepository

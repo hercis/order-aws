@@ -1,5 +1,6 @@
 package org.acme.order.handler;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -7,9 +8,9 @@ import java.util.stream.Collectors;
 import org.acme.order.api.CreateOrderRequest;
 import org.acme.order.domain.Order;
 import org.acme.order.service.OrderService;
-import org.acme.order.support.AppError;
-import org.acme.order.support.Result;
-import org.acme.order.support.AppError.*;
+import org.acme.support.AppError;
+import org.acme.support.Result;
+import org.acme.support.AppError.*;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -36,6 +37,11 @@ public class CreateOrderHandler
   @Override
   public APIGatewayProxyResponseEvent handleRequest(
       APIGatewayProxyRequestEvent event, Context context) {
+    if (event.getHttpMethod().equals(SdkHttpMethod.OPTIONS.name())) {
+      return new APIGatewayProxyResponseEvent()
+          .withStatusCode(HttpStatusCode.OK)
+          .withHeaders(corsHeaders());
+    }
     if (!event.getHttpMethod().equals(SdkHttpMethod.POST.name())) {
       return new APIGatewayProxyResponseEvent()
           .withStatusCode(HttpStatusCode.METHOD_NOT_ALLOWED)
@@ -54,7 +60,7 @@ public class CreateOrderHandler
         return new APIGatewayProxyResponseEvent()
             .withStatusCode(400)
             .withBody(violations.toString());
-//            .withBody(mapper.writeValueAsString(errors));
+        // .withBody(mapper.writeValueAsString(errors));
       }
 
       Result<Order, AppError> serviceResult = service.create(request);
@@ -72,29 +78,42 @@ public class CreateOrderHandler
                         new APIGatewayProxyResponseEvent()
                             .withStatusCode(HttpStatusCode.NOT_FOUND)
                             .withBody(buildBody(e))
-                            .withHeaders(Map.of("Content-Type", "application/json"));
+                            .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")));
                     case AppError e ->
                         new APIGatewayProxyResponseEvent()
                             .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                             .withBody(buildBody(e))
-                            .withHeaders(Map.of("Content-Type", "application/json"));
+                            .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")));
                   },
               json ->
                   new APIGatewayProxyResponseEvent()
                       .withStatusCode(HttpStatusCode.CREATED)
                       .withBody(json)
-                      .withHeaders(Map.of("Content-Type", "application/json")));
+                      .withHeaders(corsHeaders(Map.of("Content-Type", "application/json"))));
       return response;
     } catch (Exception e) {
       context.getLogger().log(e.getMessage());
       return new APIGatewayProxyResponseEvent()
           .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+          .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")))
           .withBody("{\"error\":\"Internal server error\"}");
     }
   }
 
   private String buildBody(AppError error) {
-    String body = mapper.createObjectNode().put("error", error.message()).toString();
-    return body;
+    return mapper.createObjectNode().put("message", error.message()).toString();
+  }
+
+  private Map<String, String> corsHeaders() {
+    return corsHeaders(Map.of());
+  }
+
+  private Map<String, String> corsHeaders(Map<String, String> additionalHeaders) {
+    Map<String, String> headers = new HashMap<>(additionalHeaders);
+    headers.put("Access-Control-Allow-Origin", "http://localhost:5173");
+    headers.put("Access-Control-Allow-Methods", "OPTIONS,PUT");
+    headers.put("Access-Control-Allow-Headers", "Content-Type,Accept");
+    headers.put("Access-Control-Allow-Credentials", "true");
+    return headers;
   }
 }

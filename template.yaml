@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Order API using AWS Lambda with API Gateway
+Description: Order API using Lambda with API Gateway
 
 Parameters:
   Stage:
@@ -55,7 +55,7 @@ Resources:
           Properties:
             RestApiId: !Ref OrderApiGateway
             Path: /order
-            Method: POST
+            Method: ANY
 
   OrderTable:
     Type: AWS::DynamoDB::Table
@@ -77,4 +77,3 @@ Outputs:
     Value: !Sub 'https://${OrderApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/'
     Export:
       Name: QuarkusLambdaApi
-

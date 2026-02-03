@@ -8,7 +8,7 @@ import static org.mockito.Mockito.mock;
 
 import org.acme.order.domain.Order;
 import org.acme.order.service.OrderService;
-import org.acme.order.support.Result;
+import org.acme.support.Result;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
