@@ -1,22 +1,27 @@
 package org.acme.order.handler;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.acme.order.api.CreateOrderRequest;
 import org.acme.order.domain.Order;
 import org.acme.order.service.OrderService;
 import org.acme.support.AppError;
+import org.acme.support.AppError.ErrorResponse;
+import org.acme.support.AppError.InternalAppError;
+import org.acme.support.AppError.NotFoundError;
+import org.acme.support.AppError.ValidationError;
 import org.acme.support.Result;
-import org.acme.support.AppError.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 // import jakarta.json.Json;
 import jakarta.inject.Inject;
@@ -33,6 +38,9 @@ public class CreateOrderHandler
   @Inject ObjectMapper mapper;
   @Inject Validator validator;
   @Inject OrderService service;
+
+  @ConfigProperty(name = "order.api")
+  private String orderApi;
 
   @Override
   public APIGatewayProxyResponseEvent handleRequest(
@@ -53,14 +61,14 @@ public class CreateOrderHandler
 
       Set<ConstraintViolation<Object>> violations = validator.validate(request);
       if (!violations.isEmpty()) {
-        Map<String, String> errors =
+        List<ValidationError> errors =
             violations.stream()
-                .collect(
-                    Collectors.toMap(v -> v.getPropertyPath().toString(), v -> v.getMessage()));
+                .map(v -> ValidationError.from(v.getPropertyPath().toString(), v.getMessage()))
+                .toList();
         return new APIGatewayProxyResponseEvent()
             .withStatusCode(400)
-            .withBody(violations.toString());
-        // .withBody(mapper.writeValueAsString(errors));
+            .withBody(buildBody(ErrorResponse.fromErrors("Validation failed", errors)))
+            .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")));
       }
 
       Result<Order, AppError> serviceResult = service.create(request);
@@ -85,10 +93,10 @@ public class CreateOrderHandler
                             .withBody(buildBody(e))
                             .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")));
                   },
-              json ->
+              jsonStr ->
                   new APIGatewayProxyResponseEvent()
                       .withStatusCode(HttpStatusCode.CREATED)
-                      .withBody(json)
+                      .withBody(jsonStr)
                       .withHeaders(corsHeaders(Map.of("Content-Type", "application/json"))));
       return response;
     } catch (Exception e) {
@@ -96,12 +104,20 @@ public class CreateOrderHandler
       return new APIGatewayProxyResponseEvent()
           .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
           .withHeaders(corsHeaders(Map.of("Content-Type", "application/json")))
-          .withBody("{\"error\":\"Internal server error\"}");
+          .withBody(buildBody(ErrorResponse.fromMessage("Internal server error")));
     }
   }
 
+  private String buildBody(ErrorResponse response) {
+    ObjectNode root = mapper.createObjectNode().put("message", response.message());
+    if (response.errors() != null) {
+      root.set("errors", mapper.valueToTree(response.errors()));
+    }
+    return root.toString();
+  }
+
   private String buildBody(AppError error) {
-    return mapper.createObjectNode().put("message", error.message()).toString();
+    return buildBody(ErrorResponse.fromError(error));
   }
 
   private Map<String, String> corsHeaders() {
@@ -110,7 +126,7 @@ public class CreateOrderHandler
 
   private Map<String, String> corsHeaders(Map<String, String> additionalHeaders) {
     Map<String, String> headers = new HashMap<>(additionalHeaders);
-    headers.put("Access-Control-Allow-Origin", "http://localhost:5173");
+    headers.put("Access-Control-Allow-Origin", orderApi);
     headers.put("Access-Control-Allow-Methods", "OPTIONS,PUT");
     headers.put("Access-Control-Allow-Headers", "Content-Type,Accept");
     headers.put("Access-Control-Allow-Credentials", "true");
