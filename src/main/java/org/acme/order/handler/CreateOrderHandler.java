@@ -39,8 +39,8 @@ public class CreateOrderHandler
   @Inject Validator validator;
   @Inject OrderService service;
 
-  @ConfigProperty(name = "order.api")
-  private String orderApi;
+  @ConfigProperty(name = "order.cors-origin")
+  private String corsOrigin;
 
   @Override
   public APIGatewayProxyResponseEvent handleRequest(
@@ -126,7 +126,7 @@ public class CreateOrderHandler
 
   private Map<String, String> corsHeaders(Map<String, String> additionalHeaders) {
     Map<String, String> headers = new HashMap<>(additionalHeaders);
-    headers.put("Access-Control-Allow-Origin", orderApi);
+    headers.put("Access-Control-Allow-Origin", corsOrigin);
     headers.put("Access-Control-Allow-Methods", "OPTIONS,PUT");
     headers.put("Access-Control-Allow-Headers", "Content-Type,Accept");
     headers.put("Access-Control-Allow-Credentials", "true");
